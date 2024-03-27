@@ -65,6 +65,7 @@ def on_message_1(client, userdata, msg):
             if user_id is not None:
                 # 使用 Line Bot API 发送消息
                 line_bot_api_1.push_message(user_id, messages=TextSendMessage(text=message_text))
+                pass
     except Exception as e:
         print(f"Error: {e}")
 
@@ -105,7 +106,7 @@ def on_message_2(client, userdata, msg):
 def webhook_handler_1(event):
     user_id = event.source.user_id
     message_text = event.message.text
-    # send_to_mqtt("IIOT/linenot/JS", json.dumps({"user_id": user_id, "message": message_text}))
+    send_to_mqtt("IIOT/linebot/JS", json.dumps({"user_id": user_id, "message": message_text}))
     return "Message forwarded to MQTT Broker."
 
 
@@ -113,12 +114,11 @@ def webhook_handler_1(event):
 def webhook_handler_2(event):
     user_id = event.source.user_id
     message_text = event.message.text
-    # send_to_mqtt("IIOT/linebot/lt", json.dumps({"user_id": user_id, "message": message_text}))
+    send_to_mqtt("IIOT/linebot/LT", json.dumps({"user_id": user_id, "message": message_text}))
     return "Message forwarded to MQTT Broker."
 
-def mqtt_listen_1():
+def mqtt_listen_js_alarmmsg():
     # Create MQTT client instance
-    print("_________________________________________________________")
     client = mqtt.Client()
     
     # Set message receive callback function
@@ -129,29 +129,66 @@ def mqtt_listen_1():
     client.connect(broker_address, 1883, 60)
 
     # Subscribe to topic
-    topic = "IIOT/linenot/JS"
+    topic = "IIOT/linebot/JS/AlarmMsg"
     client.subscribe(topic)
 
     # Start MQTT client loop to receive messages
     client.loop_forever()
-
-def mqtt_listen_2():
+    
+def mqtt_listen_js_return():
     # Create MQTT client instance
     client = mqtt.Client()
-
+    
     # Set message receive callback function
-    client.on_message = on_message_2
-    print(client.message_callback)
+    client.on_message = on_message_1
+    
     # Connect to MQTT server
     broker_address = "partechiiot.ddns.net"
     client.connect(broker_address, 1883, 60)
 
     # Subscribe to topic
-    topic = "IIOT/linebot/lt"
+    topic = "IIOT/linebot/JS/Return"
     client.subscribe(topic)
 
     # Start MQTT client loop to receive messages
     client.loop_forever()
+
+def mqtt_listen_lt_alarmmsg():
+    # Create MQTT client instance
+    client = mqtt.Client()
+
+    # Set message receive callback function
+    client.on_message = on_message_2
+
+    # Connect to MQTT server
+    broker_address = "partechiiot.ddns.net"
+    client.connect(broker_address, 1883, 60)
+
+    # Subscribe to topic
+    topic = "IIOT/linebot/LT/AlarmMsg"
+    client.subscribe(topic)
+
+    # Start MQTT client loop to receive messages
+    client.loop_forever()
+
+def mqtt_listen_lt_return():
+    # Create MQTT client instance
+    client = mqtt.Client()
+
+    # Set message receive callback function
+    client.on_message = on_message_2
+
+    # Connect to MQTT server
+    broker_address = "partechiiot.ddns.net"
+    client.connect(broker_address, 1883, 60)
+
+    # Subscribe to topic
+    topic = "IIOT/linebot/LT/Return"
+    client.subscribe(topic)
+
+    # Start MQTT client loop to receive messages
+    client.loop_forever()
+
 
 
 @app.route("/callback", methods=["POST"])
@@ -190,11 +227,15 @@ def callbook():
 
 if __name__ == "__main__":
     # 创建线程并运行 mqtt_listen() 函数
-    mqtt_thread_1 = threading.Thread(target=mqtt_listen_1, daemon=True)
-    mqtt_thread_1.start()
+    mqtt_thread_js_alarmmsg = threading.Thread(target=mqtt_listen_js_alarmmsg, daemon=True)
+    mqtt_thread_js_alarmmsg.start()
+    mqtt_thread_js_return = threading.Thread(target=mqtt_listen_js_return, daemon=True)
+    mqtt_thread_js_return.start()
 
-    mqtt_thread_2 = threading.Thread(target=mqtt_listen_2, daemon=True)
-    mqtt_thread_2.start()
+    mqtt_thread_lt_alarmmsg = threading.Thread(target=mqtt_listen_lt_alarmmsg, daemon=True)
+    mqtt_thread_lt_alarmmsg.start()
+    mqtt_thread_lt_return = threading.Thread(target=mqtt_listen_lt_return, daemon=True)
+    mqtt_thread_lt_return.start()
 
     # 运行 Flask 应用
     port = 8000
